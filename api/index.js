@@ -1,18 +1,12 @@
 const { GoogleGenAI } = require('@google/genai');
 
 module.exports = async (req, res) => {
-  // تفعيل CORS لضمان قبول الطلبات
-  res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
 
   if (req.method === 'POST') {
@@ -55,5 +49,5 @@ module.exports = async (req, res) => {
     }
   }
 
-  return res.status(200).send('OmniFix AI API Server is running!');
+  return res.status(200).send('API is running');
 };
