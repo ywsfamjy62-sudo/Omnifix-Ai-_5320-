@@ -103,7 +103,6 @@
   </div>
 
   <script>
-    // قائمة الباقات الـ 30 الكاملة
     const plansData = [
       "الباقة الأساسية", "Unity 2D", "Unity 3D", "C# Advanced", "Web HTML/CSS",
       "Node.js Server", "Express APIs", "Python Code", "كتابة المقالات", "التعبير الإبداعي",
@@ -118,7 +117,6 @@
     let chats = JSON.parse(localStorage.getItem('omni_chats')) || [{ id: Date.now(), title: 'محادثة جديدة', messages: [] }];
     let currentChatId = chats[0].id;
 
-    // استعادة حالة مشاهدة الإعلانات لكل باقة
     let adsProgress = JSON.parse(localStorage.getItem('adsProgress')) || {};
 
     function init() {
@@ -206,7 +204,6 @@
 
       const container = document.getElementById('chat-container');
 
-      // رسالة المستخدم
       const userMsgDiv = document.createElement('div');
       userMsgDiv.className = 'message user';
       userMsgDiv.innerText = text;
@@ -223,13 +220,11 @@
         plan: currentPlan
       };
 
-      // إعادة ضبط مدخلات الصورة والنص
       input.value = '';
       selectedImageBase64 = null;
       document.getElementById('image-preview').style.display = 'none';
       container.scrollTop = container.scrollHeight;
 
-      // رسالة الانتظار
       const aiMsgDiv = document.createElement('div');
       aiMsgDiv.className = 'message ai';
       aiMsgDiv.innerText = 'جاري التفكير...';
@@ -277,5 +272,4 @@
     init();
   </script>
 </body>
-  </html>
-  
+</html>
