@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OmniFix AI</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: #0b111e; color: #fff; display: flex; height: 100vh; overflow: hidden; }
+
+    /* القائمة الجانبية للمحادثات */
+    .sidebar { width: 260px; background-color: #121a2d; border-left: 1px solid #1e2d4a; display: flex; flex-direction: column; padding: 15px; position: fixed; right: -260px; top: 0; bottom: 0; z-index: 100; transition: right 0.3s ease; }
+    .sidebar.active { right: 0; }
+    .new-chat-btn { background-color: #2563eb; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 15px; }
+    .chats-list { flex: 1; overflow-y: auto; }
+    .chat-item { padding: 10px; background-color: #1a263d; margin-bottom: 8px; border-radius: 6px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; }
+    .chat-item:hover { background-color: #2563eb; }
+
+    /* المنطقة الرئيسية */
+    .main-content { flex: 1; display: flex; flex-direction: column; height: 100vh; width: 100%; }
+    .header { height: 60px; background-color: #121a2d; border-bottom: 1px solid #1e2d4a; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; }
+    .header-title { color: #3b82f6; font-size: 20px; font-weight: bold; }
+    .plan-badge { background: #1e293b; border: 1px solid #f59e0b; color: #fbbf24; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; text-align: center; }
+
+    /* منطقة الدردشة */
+    .chat-container { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+    .message { max-width: 85%; padding: 12px 16px; border-radius: 12px; font-size: 15px; line-height: 1.5; word-break: break-word; }
+    .message.user { align-self: flex-start; background-color: #1d4ed8; color: white; border-bottom-right-radius: 2px; }
+    .message.ai { align-self: flex-end; background-color: #1e293b; color: #e2e8f0; border-bottom-left-radius: 2px; border: 1px solid #334155; }
+    .message img { max-width: 100%; max-height: 200px; border-radius: 8px; margin-top: 8px; display: block; }
+
+    /* شريط المدخلات */
+    .input-area { padding: 10px 15px; background-color: #121a2d; border-top: 1px solid #1e2d4a; display: flex; gap: 10px; align-items: center; }
+    .input-wrapper { flex: 1; display: flex; align-items: center; background-color: #1a263d; border-radius: 8px; padding: 0 10px; }
+    .input-wrapper input[type="text"] { flex: 1; background: transparent; border: none; padding: 12px; color: white; outline: none; font-size: 14px; }
+    .add-file-btn { background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; padding: 5px; }
+    .send-btn { background-color: #2563eb; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    #image-preview { max-width: 50px; max-height: 50px; border-radius: 6px; display: none; margin-left: 10px; }
+
+    /* نافذة الباقات */
+    .modal { display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0.8); z-index: 200; align-items: center; justify-content: center; padding: 15px; }
+    .modal.active { display: flex; }
+    .modal-content { background-color: #121a2d; border-radius: 12px; width: 100%; max-width: 500px; max-height: 85vh; display: flex; flex-direction: column; border: 1px solid #1e2d4a; }
+    .modal-header { padding: 15px; border-bottom: 1px solid #1e2d4a; display: flex; justify-content: space-between; align-items: center; }
+    .modal-body { padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .plan-card { background-color: #1a263d; border: 1px solid #2563eb; border-radius: 10px; padding: 12px; }
+    .plan-info { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+    .plan-tags { display: flex; gap: 8px; }
+    .tag { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+    .tag-time { background-color: #10b981; color: #000; }
+    .tag-ads { background-color: #f59e0b; color: #000; }
+    .ad-btn { width: 100%; background-color: #2563eb; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 5px; }
+    .close-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90; }
+    .overlay.active { display: block; }
+  </style>
+</head>
+<body>
+
+  <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+  <!-- القائمة الجانبية -->
+  <div class="sidebar" id="sidebar">
+    <button class="new-chat-btn" onclick="startNewChat()">+ محادثة جديدة</button>
+    <div class="chats-list" id="chats-list"></div>
+  </div>
+
+  <!-- الواجهة الرئيسية -->
+  <div class="main-content">
+    <div class="header">
+      <button class="add-file-btn" onclick="toggleSidebar()" style="font-size:24px;">☰</button>
+      <div class="header-title">OmniFix AI</div>
+      <div class="plan-badge" onclick="openPlansModal()" id="current-plan-badge">
+        <div id="plan-name">الباقة العادية</div>
+        <div style="font-size: 10px; color: #94a3b8;" id="plan-timer">غير مفعلة</div>
+      </div>
+    </div>
+
+    <div class="chat-container" id="chat-container">
+      <div class="message ai">أهلاً بك في OmniFix AI! كيف يمكنني مساعدتك اليوم؟</div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-wrapper">
+        <button class="add-file-btn" onclick="document.getElementById('image-input').click()">+</button>
+        <input type="file" id="image-input" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
+        <img id="image-preview" src="" alt="معاينة">
+        <input type="text" id="user-input" placeholder="اكتب رسالتك هنا..." onkeypress="if(event.key === 'Enter') sendMessage()">
+      </div>
+      <button class="send-btn" onclick="sendMessage()">إرسال</button>
+    </div>
+  </div>
+
+  <!-- نافذة الباقات -->
+  <div class="modal" id="plans-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>اختر الباقة المناسبة 👑</h3>
+        <button class="close-btn" onclick="closePlansModal()">✕</button>
+      </div>
+      <div class="modal-body" id="plans-list"></div>
+    </div>
+  </div>
+
+  <script>
+    // قائمة الباقات الـ 30 الكاملة
+    const plansData = [
+      "الباقة الأساسية", "Unity 2D", "Unity 3D", "C# Advanced", "Web HTML/CSS",
+      "Node.js Server", "Express APIs", "Python Code", "كتابة المقالات", "التعبير الإبداعي",
+      "تحليل الصور", "الهندسة العكسية", "تصميم الألعاب", "UI/UX Mobile", "قاعدة البيانات",
+      "الذكاء الاصطناعي", "معالجة اللغات", "أمن المعلومات", "السكربتات", "التسويق الرقمي",
+      "الترجمة الفوربة", "مراجعة الكود", "تحسين الأداء", "الدعم الفني", "حل الخوارزميات",
+      "OmniFix Pro", "OmniFix Max", "OmniFix Ultra", "باقة الذكاء الخارق", "باقة الذكاء VIP"
+    ];
+
+    let currentPlan = localStorage.getItem('activePlan') || "الباقة العادية";
+    let selectedImageBase64 = null;
+    let chats = JSON.parse(localStorage.getItem('omni_chats')) || [{ id: Date.now(), title: 'محادثة جديدة', messages: [] }];
+    let currentChatId = chats[0].id;
+
+    // استعادة حالة مشاهدة الإعلانات لكل باقة
+    let adsProgress = JSON.parse(localStorage.getItem('adsProgress')) || {};
+
+    function init() {
+      renderPlans();
+      renderChats();
+      updatePlanBadge();
+    }
+
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('active');
+      document.getElementById('overlay').classList.toggle('active');
+    }
+
+    function openPlansModal() { document.getElementById('plans-modal').classList.add('active'); }
+    function closePlansModal() { document.getElementById('plans-modal').classList.remove('active'); }
+
+    function renderPlans() {
+      const list = document.getElementById('plans-list');
+      list.innerHTML = '';
+      plansData.forEach((name, index) => {
+        const planNum = index + 1;
+        const totalAds = planNum;
+        const watched = adsProgress[planNum] || 0;
+
+        const card = document.createElement('div');
+        card.className = 'plan-card';
+        card.innerHTML = `
+          <div class="plan-info">
+            <strong>باقة ${planNum}: ${name}</strong>
+            <div class="plan-tags">
+              <span class="tag tag-time">⏰ 12 ساعة</span>
+              <span class="tag tag-ads">📺 ${totalAds} إعلان</span>
+            </div>
+          </div>
+          <button class="ad-btn" onclick="watchAd(${planNum}, ${totalAds})">
+            ${watched >= totalAds ? 'تفعيل الباقة الان' : `مشاهدة الإعلان (${watched}/${totalAds})`}
+          </button>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function watchAd(planNum, totalAds) {
+      let current = adsProgress[planNum] || 0;
+      if (current < totalAds) {
+        current++;
+        adsProgress[planNum] = current;
+        localStorage.setItem('adsProgress', JSON.stringify(adsProgress));
+        renderPlans();
+        alert(`تمت مشاهدة الإعلان (${current}/${totalAds})`);
+      }
+      
+      if (current >= totalAds) {
+        currentPlan = `باقة ${planNum}: ${plansData[planNum - 1]}`;
+        localStorage.setItem('activePlan', currentPlan);
+        updatePlanBadge();
+        closePlansModal();
+        alert(`تم تفعيل ${currentPlan} بنجاح لمدة 12 ساعة!`);
+      }
+    }
+
+    function updatePlanBadge() {
+      document.getElementById('plan-name').innerText = currentPlan;
+      document.getElementById('plan-timer').innerText = currentPlan === "الباقة العادية" ? "غير مفعلة" : "مفعلة (12س)";
+    }
+
+    function handleImageSelect(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          selectedImageBase64 = e.target.result;
+          const imgPreview = document.getElementById('image-preview');
+          imgPreview.src = selectedImageBase64;
+          imgPreview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('user-input');
+      const text = input.value.trim();
+      if (!text && !selectedImageBase64) return;
+
+      const container = document.getElementById('chat-container');
+
+      // رسالة المستخدم
+      const userMsgDiv = document.createElement('div');
+      userMsgDiv.className = 'message user';
+      userMsgDiv.innerText = text;
+      if (selectedImageBase64) {
+        const img = document.createElement('img');
+        img.src = selectedImageBase64;
+        userMsgDiv.appendChild(img);
+      }
+      container.appendChild(userMsgDiv);
+
+      const payload = {
+        message: text,
+        image: selectedImageBase64,
+        plan: currentPlan
+      };
+
+      // إعادة ضبط مدخلات الصورة والنص
+      input.value = '';
+      selectedImageBase64 = null;
+      document.getElementById('image-preview').style.display = 'none';
+      container.scrollTop = container.scrollHeight;
+
+      // رسالة الانتظار
+      const aiMsgDiv = document.createElement('div');
+      aiMsgDiv.className = 'message ai';
+      aiMsgDiv.innerText = 'جاري التفكير...';
+      container.appendChild(aiMsgDiv);
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        aiMsgDiv.innerText = data.reply;
+      } catch (err) {
+        aiMsgDiv.innerText = 'خطأ في الاتصال بالسيرفر.';
+      }
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function startNewChat() {
+      const newId = Date.now();
+      chats.unshift({ id: newId, title: 'محادثة جديدة', messages: [] });
+      currentChatId = newId;
+      localStorage.setItem('omni_chats', JSON.stringify(chats));
+      renderChats();
+      document.getElementById('chat-container').innerHTML = '<div class="message ai">أهلاً بك في محادثة جديدة! كيف يمكنني مساعدتك؟</div>';
+      toggleSidebar();
+    }
+
+    function renderChats() {
+      const list = document.getElementById('chats-list');
+      list.innerHTML = '';
+      chats.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'chat-item';
+        item.innerText = c.title;
+        item.onclick = () => {
+          currentChatId = c.id;
+          toggleSidebar();
+        };
+        list.appendChild(item);
+      });
+    }
+
+    init();
+  </script>
+</body>
+  </html>
+  
