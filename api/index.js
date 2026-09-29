@@ -1,4 +1,4 @@
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,10 +22,14 @@ module.exports = async (req, res) => {
     }
 
     try {
-      const ai = new GoogleGenAI({ apiKey });
-      const contents = [];
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-2.5-flash',
+        systemInstruction: `أنت مساعد OmniFix AI الذكي. الباقة الحالية للمستخدم هي: ${plan || 'الباقة العادية'}. أجب على كافة الأسئلة بدقة عالية واكتب الكود واشرحه وتحليل الصور عند إرفاقها.`
+      });
 
-      if (message) contents.push({ text: message });
+      const contents = [];
+      if (message) contents.push(message);
 
       if (image) {
         const base64Data = image.split(',')[1] || image;
@@ -35,19 +39,14 @@ module.exports = async (req, res) => {
         });
       }
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: contents,
-        config: {
-          systemInstruction: `أنت مساعد OmniFix AI الذكي. الباقة الحالية للمستخدم هي: ${plan || 'الباقة العادية'}. أجب على كافة الأسئلة بدقة عالية واكتب الكود واشرحه وتحليل الصور عند إرفاقها.`
-        }
-      });
+      const result = await model.generateContent(contents);
+      const response = await result.response;
 
-      return res.status(200).json({ reply: response.text || 'لم يتم استلام رد.' });
+      return res.status(200).json({ reply: response.text() || 'لم يتم استلام رد.' });
     } catch (error) {
       return res.status(500).json({ reply: 'خطأ بالسيرفر: ' + (error.message || 'خطأ غير معروف') });
     }
   }
 
-  return res.status(200).send('API is running');
+  return res.status(200).send('API Server is running successfully!');
 };
