@@ -1,13 +1,12 @@
 {
   "name": "omnifix-ai",
   "version": "1.0.0",
-  "description": "OmniFix AI Application for Vercel Deployment",
-  "main": "index.js",
+  "description": "OmniFix AI Serverless Application",
+  "main": "api/index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node api/index.js"
   },
   "dependencies": {
-    "@google/genai": "^0.1.1",
-    "express": "^4.18.2"
+    "@google/genai": "^0.1.1"
   }
 }
