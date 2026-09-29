@@ -1,12 +1,8 @@
 {
   "name": "omnifix-ai",
   "version": "1.0.0",
-  "description": "OmniFix AI Serverless Application",
   "main": "api/index.js",
-  "scripts": {
-    "start": "node api/index.js"
-  },
   "dependencies": {
-    "@google/genai": "^0.1.1"
+    "@google/generative-ai": "^0.21.0"
   }
 }
